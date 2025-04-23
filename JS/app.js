@@ -48,9 +48,6 @@ $(document).ready(function () {
     }
 
 
-
-
-
     // Prepare the audios
     $('body').append(`
         <audio id="cantinaSong"> 
@@ -101,104 +98,6 @@ $(document).ready(function () {
         `);
     }
 
-    // Get the character
-    function getCharacter(name) {
-        $.ajax({
-            url: `https://swapi.dev/api/people/?search=${name}&format=json`,
-            method: 'GET',
-            dataType: 'json',
-            success: function (character) {
-                getFilmsTitles(character.results[0]);
-            },
-            error: function (xhr, status, error) {
-                console.error('Error en la solicitud:', error);
-            }
-        });
-    }
-
-    // Save the character into the JSON
-    function getFilmsTitles(character) {
-        let films = character.films;
-        let filmsTitles = [];
-        let promiseArray = [];
-
-        films.forEach((film) => {
-            promiseArray.push($.ajax({
-                url: `${film}`,
-                method: 'GET',
-                dataType: 'json',
-                success: function (film) {
-                    filmsTitles.push(film.title)
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error en la solicitud:', error);
-                }
-            }))
-        });
-
-        Promise.all(promiseArray)
-            .then(function (results) {
-                // Send the character and the titles to the homeworld name getter
-                getHomeworldName(character, filmsTitles);
-            })
-            .catch(function (error) {
-                console.error('Error al procesar las películas:', error);
-            });
-
-    }
-
-    function getHomeworldName(character, filmsTitles) {
-        $.ajax({
-            url: `${character.homeworld}`,
-            method: 'GET',
-            dataType: 'json',
-            success: function (homeworld) {
-                //Save the character into the JSON
-                getSpecie(character, filmsTitles, homeworld.name);
-            },
-            error: function (xhr, status, error) {
-                console.error('Error en la solicitud:', error);
-            }
-        });
-
-    }
-
-    function getSpecie(character, filmsTitles, homeworldName) {
-        if (character.species.length !== 0) {
-            $.ajax({
-                url: `${character.species[0]}`,
-                method: 'GET',
-                dataType: 'json',
-                success: function (specie) {
-                    //Save the character into the JSON
-                    charactersData.characters.push({
-                        "name": character.name,
-                        "specie": specie.name,
-                        "height": character.height + " cm",
-                        "birth year": character.birth_year,
-                        "gender": character.gender,
-                        "homeworld": homeworldName,
-                        "films where appears": filmsTitles
-                    });
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error en la solicitud:', error);
-                }
-            });
-
-        } else {
-            //Save the character into the JSON
-            charactersData.characters.push({
-                "name": character.name,
-                "specie": "None",
-                "height": character.height + " cm",
-                "birth year": character.birth_year,
-                "gender": character.gender,
-                "homeworld": homeworldName,
-                "appears in": filmsTitles
-            });
-        }
-    }
 
     function makeSelectFunctions() {
         // Set the click function to the button to show the info
@@ -207,7 +106,8 @@ $(document).ready(function () {
 
             charName = charName.replace(" ", " ");
 
-            let selectedCharacter = charactersData.characters.find(character => character.name.replace(" ", "") === charName);
+            let charKey = Object.keys(charactersData).find(key => key.replace(/\s/g, '') === charName);
+            let selectedCharacter = charactersData[charKey];
 
             // Insert the JSON data into the info div
             $('#infoRow').empty();
@@ -230,7 +130,7 @@ $(document).ready(function () {
             if (audio.paused) {
                 audio.play();
             }
-            
+
             document.getElementById('infoRow').scrollIntoView({ behavior: 'smooth' });
         });
     }
@@ -239,11 +139,111 @@ $(document).ready(function () {
 
     // JSON to save the characters
     let charactersData = {
-        "characters": []
+        "Chewbacca": {
+            "name": "",
+            "gender": "",
+            "skin_color": "",
+            "hair_color": "",
+            "height": "",
+            "eye_color": "",
+            "mass": "",
+            "homeworld": "",
+            "birth year": "",
+        },
+        "Darth Vader": {
+            "name": "",
+            "gender": "",
+            "skin_color": "",
+            "hair_color": "",
+            "height": "",
+            "eye_color": "",
+            "mass": "",
+            "homeworld": "",
+            "birth year": "",
+        },
+        "R2-D2": {
+            "name": "",
+            "gender": "",
+            "skin_color": "",
+            "hair_color": "",
+            "height": "",
+            "eye_color": "",
+            "mass": "",
+            "homeworld": "",
+            "birth year": "",
+        },
+        "C-3PO": {
+            "name": "",
+            "gender": "",
+            "skin_color": "",
+            "hair_color": "",
+            "height": "",
+            "eye_color": "",
+            "mass": "",
+            "homeworld": "",
+            "birth year": "",
+        },
+        "Yoda": {
+            "name": "",
+            "gender": "",
+            "skin_color": "",
+            "hair_color": "",
+            "height": "",
+            "eye_color": "",
+            "mass": "",
+            "homeworld": "",
+            "birth year": "",
+        }
     };
 
-    $.each(names, function (_, name) {
-        getCharacter(name);
+
+    function isURL(str) {
+        try {
+            new URL(str);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    $.each(charactersData, function (name, data) {
+        // get character info
+        $.ajax({
+            url: `https://swapi.tech/api/people/?name=${name}`,
+            method: 'GET',
+            dataType: 'json',
+            success: function (character) {
+
+                // iterate character properties
+                $.each(charactersData[name], function (key, _) {
+                    // fill json with character data
+                    data = character.result[0].properties[key]
+                    // check if its an URL to get the value
+                    if (isURL(data)) {
+                        $.ajax({
+                            url: data,
+                            method: 'GET',
+                            dataType: 'json',
+                            success: function (result) {
+                                // get planet name
+                                charactersData[name][key] = result.result.properties.name
+
+                            },
+                            error: function (xhr, status, error) {
+                                console.error('Error en la solicitud:', error);
+                            }
+                        });
+                    } else {
+                        charactersData[name][key] = data
+                    }
+                })
+
+
+            },
+            error: function (xhr, status, error) {
+                console.error('Error en la solicitud:', error);
+            }
+        });
     });
 
     function startApp() {
